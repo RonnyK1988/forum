@@ -6,7 +6,7 @@ curl_setopt_array($curl, array(
   CURLOPT_RETURNTRANSFER => true,
   CURLOPT_FOLLOWLOCATION => true,
   CURLOPT_HTTPHEADER => array(
-    "x-rapidapi-key: b8bc30c90114e2e8fc084b609fc6c631",
+    "x-rapidapi-key: xxx",
     "x-rapidapi-host: v3.football.api-sports.io",
   ),
 ));
