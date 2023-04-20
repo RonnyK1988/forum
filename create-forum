@@ -21,6 +21,7 @@ curl_close($curl);
 
 $data = json_decode($response, true);
 $fixtures = $data['response'];
+$matchdays = array();
 
 // Load WordPress
 require_once('wp-load.php');
@@ -34,38 +35,38 @@ $season_forum_id = bbp_insert_forum(array(
   'post_type' => bbp_get_forum_post_type(),
 ));
 
-// Group the fixtures by matchday
-$fixtures_by_matchday = array();
+// Create a subforum for each matchday in the season
 foreach ($fixtures as $fixture) {
   $matchday = $fixture['round']['name'];
-  $fixtures_by_matchday[$matchday][] = $fixture;
-}
+  if (!in_array($matchday, $matchdays)) {
+    $matchdays[] = $matchday;
+    $matchday_number = str_replace('Matchday ', '', $matchday);
 
-// Create a subforum for each matchday in the season
-foreach ($fixtures_by_matchday as $matchday => $matchday_fixtures) {
-  // Create the matchday subforum
-  $matchday_forum_id = bbp_insert_forum(array(
-    'post_title' => "Matchday $matchday",
-    'post_content' => '',
-    'post_parent' => $season_forum_id,
-    'post_status' => 'publish',
-    'post_type' => bbp_get_forum_post_type(),
-  ));
-
-  // Loop through the fixtures to create a subforum for each match in the matchday
-  foreach ($matchday_fixtures as $match_fixture) {
-    $homeTeam = $match_fixture['teams']['home']['name'];
-    $awayTeam = $match_fixture['teams']['away']['name'];
-    $match_title = "$homeTeam vs $awayTeam";
-
-    // Create the match subforum
-    $match_forum_id = bbp_insert_forum(array(
-      'post_title' => $match_title,
+    // Create the matchday subforum
+    $matchday_forum_id = bbp_insert_forum(array(
+      'post_title' => "Matchday $matchday_number",
       'post_content' => '',
-      'post_parent' => $matchday_forum_id,
+      'post_parent' => $season_forum_id,
       'post_status' => 'publish',
       'post_type' => bbp_get_forum_post_type(),
     ));
+
+    // Loop through the fixtures again to find all matches for the current matchday
+    foreach ($fixtures as $match_fixture) {
+      if ($match_fixture['round']['name'] == $matchday) {
+        $homeTeam = $match_fixture['teams']['home']['name'];
+        $awayTeam = $match_fixture['teams']['away']['name'];
+        $match_title = "$homeTeam vs $awayTeam";
+
+        // Create the match subforum
+        $match_forum_id = bbp_insert_forum(array(
+          'post_title' => $match_title,
+          'post_content' => '',
+          'post_parent' => $matchday_forum_id,
+          'post_status' => 'publish',
+          'post_type' => bbp_get_forum_post_type(),
+        ));
+      }
+    }
   }
 }
-?>
