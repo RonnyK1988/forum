@@ -1,0 +1,71 @@
+<?php
+$curl = curl_init();
+
+curl_setopt_array($curl, array(
+  CURLOPT_URL => "https://v3.football.api-sports.io/fixtures?league=39&season=2022",
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_FOLLOWLOCATION => true,
+  CURLOPT_HTTPHEADER => array(
+    "x-rapidapi-key: b8bc30c90114e2e8fc084b609fc6c631",
+    "x-rapidapi-host: v3.football.api-sports.io",
+  ),
+));
+
+$response = curl_exec($curl);
+
+if(curl_errno($curl)){
+  echo 'Error: ' . curl_error($curl);
+}
+
+curl_close($curl);
+
+$data = json_decode($response, true);
+$fixtures = $data['response'];
+
+// Load WordPress
+require_once('wp-load.php');
+
+// Create the 2022/2023 season forum
+$season_forum_id = bbp_insert_forum(array(
+  'post_title' => 'Premier League 2022/2023',
+  'post_content' => '',
+  'post_parent' => 0,
+  'post_status' => 'publish',
+  'post_type' => bbp_get_forum_post_type(),
+));
+
+// Group the fixtures by matchday
+$fixtures_by_matchday = array();
+foreach ($fixtures as $fixture) {
+  $matchday = $fixture['round']['name'];
+  $fixtures_by_matchday[$matchday][] = $fixture;
+}
+
+// Create a subforum for each matchday in the season
+foreach ($fixtures_by_matchday as $matchday => $matchday_fixtures) {
+  // Create the matchday subforum
+  $matchday_forum_id = bbp_insert_forum(array(
+    'post_title' => "Matchday $matchday",
+    'post_content' => '',
+    'post_parent' => $season_forum_id,
+    'post_status' => 'publish',
+    'post_type' => bbp_get_forum_post_type(),
+  ));
+
+  // Loop through the fixtures to create a subforum for each match in the matchday
+  foreach ($matchday_fixtures as $match_fixture) {
+    $homeTeam = $match_fixture['teams']['home']['name'];
+    $awayTeam = $match_fixture['teams']['away']['name'];
+    $match_title = "$homeTeam vs $awayTeam";
+
+    // Create the match subforum
+    $match_forum_id = bbp_insert_forum(array(
+      'post_title' => $match_title,
+      'post_content' => '',
+      'post_parent' => $matchday_forum_id,
+      'post_status' => 'publish',
+      'post_type' => bbp_get_forum_post_type(),
+    ));
+  }
+}
+?>
